@@ -22,9 +22,8 @@ function rgbaFromHex(hex: string, alpha: number): string {
 
 /**
  * Draws a soft, type-based circle around each node location.
- * This is a separate overlay from the node pin marker itself.
- * It uses true map-distance radius values from the type style mapping,
- * so the circle scales correctly with zoom and stays centered on the node.
+ * This overlay uses a DOM div per node and recalculates the pixel radius
+ * whenever the map is redrawn, so the circle represents a fixed meter radius.
  */
 export function createRadiantNodeHalosOverlay(nodes: MapNode[]): google.maps.OverlayView {
   if (typeof window === 'undefined' || typeof google === 'undefined' || !google.maps?.OverlayView) {
@@ -33,108 +32,82 @@ export function createRadiantNodeHalosOverlay(nodes: MapNode[]): google.maps.Ove
 
   class RadiantNodeHalosOverlayImpl extends google.maps.OverlayView {
     private readonly root: HTMLDivElement;
-    private readonly canvas: HTMLCanvasElement;
     private readonly nodeList: MapNode[];
-    private listeners: google.maps.MapsEventListener[] = [];
+    private readonly nodeDivs: Map<MapNode, HTMLDivElement>;
 
     constructor(nodeList: MapNode[]) {
       super();
       this.nodeList = nodeList;
+      this.nodeDivs = new Map();
+
       this.root = document.createElement('div');
       this.root.style.position = 'absolute';
       this.root.style.inset = '0';
       this.root.style.pointerEvents = 'none';
-
-      this.canvas = document.createElement('canvas');
-      this.canvas.style.display = 'block';
-      this.canvas.style.width = '100%';
-      this.canvas.style.height = '100%';
-      this.root.appendChild(this.canvas);
+      this.root.style.overflow = 'visible';
     }
 
     onAdd(): void {
       const panes = this.getPanes();
       if (!panes?.overlayLayer) return;
 
-      panes.overlayLayer.appendChild(this.root);
+      for (const node of this.nodeList) {
+        const color = appearanceForType(node.type).color;
+        const div = document.createElement('div');
+        div.style.position = 'absolute';
+        div.style.border = 'none';
+        div.style.borderRadius = '50%';
+        div.style.pointerEvents = 'none';
+        div.style.background = `radial-gradient(circle, ${rgbaFromHex(color, 0.72)} 0%, ${rgbaFromHex(color, 0.24)} 60%, rgba(255,255,255,0) 100%)`;
+        div.style.willChange = 'width, height, left, top';
 
-      const map = this.getMap();
-      if (!map) return;
-
-      const redraw = () => {
-        this.draw();
-      };
-
-      this.listeners = [
-        map.addListener('bounds_changed', redraw),
-        map.addListener('zoom_changed', redraw),
-        map.addListener('center_changed', redraw),
-        map.addListener('projection_changed', redraw),
-        map.addListener('idle', redraw),
-      ];
-
-      redraw();
-    }
-
-    onRemove(): void {
-      this.listeners.forEach((l) => {
-        google.maps.event.removeListener(l);
-      });
-      this.listeners = [];
-      if (this.root.parentNode) {
-        this.root.parentNode.removeChild(this.root);
+        this.nodeDivs.set(node, div);
+        panes.overlayLayer.appendChild(div);
       }
+
+      this.draw();
     }
 
     draw(): void {
-      const map = this.getMap();
       const projection = this.getProjection();
-      if (!map || !projection || !(map instanceof google.maps.Map)) return;
-
-      const spherical = google.maps.geometry?.spherical;
-      if (!spherical) return;
-
-      const mapDiv = map.getDiv();
-      const w = mapDiv.clientWidth;
-      const h = mapDiv.clientHeight;
-      if (w === 0 || h === 0) return;
-
-      const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-      this.canvas.width = Math.floor(w * dpr);
-      this.canvas.height = Math.floor(h * dpr);
-
-      const ctx = this.canvas.getContext('2d');
-      if (!ctx) return;
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
+      if (!projection) return;
 
       for (const node of this.nodeList) {
-        const radiusM = Math.max(1, radiusMetersForNode(node));
+        const div = this.nodeDivs.get(node);
+        if (!div) continue;
+
         const latLng = new google.maps.LatLng(node.latitude, node.longitude);
-        const center = projection.fromLatLngToDivPixel(latLng);
-        if (!center) continue;
+        const centerPixel = projection.fromLatLngToDivPixel(latLng);
+        if (!centerPixel) continue;
 
-        const edgeLatLng = spherical.computeOffset(latLng, radiusM, 90);
-        const edge = projection.fromLatLngToDivPixel(edgeLatLng);
-        if (!edge) continue;
+        const radiusM = Math.max(1, radiusMetersForNode(node));
+        const radiusPx = this.getPixelRadius(projection, latLng, radiusM);
+        const size = Math.max(0, radiusPx * 2);
 
-        let r = Math.hypot(edge.x - center.x, edge.y - center.y);
-        r = Math.max(r, 10);
-
-        const { color } = appearanceForType(node.type);
-        const grad = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, r);
-        grad.addColorStop(0, rgbaFromHex(color, 0.84));
-        grad.addColorStop(0.2, rgbaFromHex(color, 0.52));
-        grad.addColorStop(0.45, rgbaFromHex(color, 0.28));
-        grad.addColorStop(0.8, rgbaFromHex(color, 0.12));
-        grad.addColorStop(1, rgbaFromHex(color, 0));
-
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
-        ctx.fill();
+        div.style.width = `${size}px`;
+        div.style.height = `${size}px`;
+        div.style.left = `${centerPixel.x - radiusPx}px`;
+        div.style.top = `${centerPixel.y - radiusPx}px`;
       }
+    }
+
+    private getPixelRadius(projection: google.maps.MapCanvasProjection, center: google.maps.LatLng, radiusMeters: number): number {
+      const metersPerDegree = 111320 * Math.cos(center.lat() * Math.PI / 180);
+      const radiusInDegrees = radiusMeters / metersPerDegree;
+      const edgeLatLng = new google.maps.LatLng(center.lat(), center.lng() + radiusInDegrees);
+      const p1 = projection.fromLatLngToDivPixel(center);
+      const p2 = projection.fromLatLngToDivPixel(edgeLatLng);
+      if (!p1 || !p2) return 0;
+      return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+    }
+
+    onRemove(): void {
+      for (const div of this.nodeDivs.values()) {
+        if (div.parentNode) {
+          div.parentNode.removeChild(div);
+        }
+      }
+      this.nodeDivs.clear();
     }
   }
 

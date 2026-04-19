@@ -13,7 +13,7 @@ function pinSvg(fill: string): string {
       <stop offset="100%" stop-color="${fill}" stop-opacity="0.18"/>
     </radialGradient>
   </defs>
-  <path d="M14 2C8 2 3 7.5 3 13.6c0 7.7 11 18.7 11 18.7s11-11 11-18.7C25 7.5 20 2 14 2Z" fill="url(%23g)" stroke="${stroke}" stroke-width="1.2"/>
+  <path d="M14 2C8 2 3 7.5 3 13.6c0 7.7 11 18.7 11 18.7s11-11 11-18.7C25 7.5 20 2 14 2Z" fill="url(#g)" stroke="${stroke}" stroke-width="1.2"/>
   <circle cx="14" cy="14" r="4.8" fill="rgba(255,255,255,0.92)"/>
   <circle cx="14" cy="14" r="2.3" fill="${fill}"/>
 </svg>`;
