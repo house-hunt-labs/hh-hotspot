@@ -6,4 +6,5 @@ import type { MapNode } from '@/nodes/types';
  */
 export interface MapNodeSource {
   list(): Promise<MapNode[]>;
+  listByType?(type: string): Promise<MapNode[]>;
 }

@@ -42,9 +42,15 @@ export function CoordinateMarkForm({ onPlace }: CoordinateMarkFormProps) {
   };
 
   return (
-    <div className="map-coords-panel">
-      <p className="map-coords-title">Pin by coordinates</p>
-      <div className="map-coords-row">
+    <div className="map-coords-card">
+      <div className="map-coords-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+        Pin by coordinates
+      </div>
+      <div className="map-coords-inputs">
         <input
           className="map-coords-input"
           inputMode="decimal"
@@ -66,7 +72,7 @@ export function CoordinateMarkForm({ onPlace }: CoordinateMarkFormProps) {
         <button type="button" className="map-coords-btn map-coords-btn-primary" onClick={submit}>
           Show on map
         </button>
-        <button type="button" className="map-coords-btn map-coords-btn-ghost" onClick={clear}>
+        <button type="button" className="map-coords-btn map-coords-btn-secondary" onClick={clear}>
           Clear
         </button>
       </div>
