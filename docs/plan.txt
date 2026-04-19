@@ -1,0 +1,587 @@
+PRODUCTION BLUEPRINT
+PROJECT: LocalityIQ (City Heatmap Locality Scoring Platform)
+
+GOAL:
+Production-grade scalable web app that scores city localities and displays
+interactive heatmaps with real-time user preferences.
+
+========================================================
+0. PRODUCT STRATEGY (VERY IMPORTANT)
+========================================================
+
+Launch Order:
+
+PHASE 1:
+Bangalore only
+
+PHASE 2:
+Top 8 Indian metros
+
+PHASE 3:
+Tier 2 cities
+
+Reason:
+Geo-data cleanup + market fit first.
+
+========================================================
+1. FINAL PRODUCTION STACK
+========================================================
+
+FRONTEND WEB
+------------
+- Next.js 15 (App Router)
+- TypeScript
+- TailwindCSS
+- shadcn/ui
+- TanStack Query
+- Zustand
+- MapLibre GL JS
+- deck.gl
+- h3-js
+
+BACKEND
+-------
+- NestJS (modular enterprise backend)
+- TypeScript
+- BullMQ (jobs)
+- Redis
+
+DATABASE
+--------
+- PostgreSQL 16
+- PostGIS extension
+
+SEARCH / GEO DATA
+-----------------
+- OpenStreetMap
+- Overpass API
+- Nominatim
+- Optional: Google Places premium later
+
+INFRA
+-----
+- Vercel (frontend)
+- Railway / Fly.io / AWS ECS (backend)
+- Supabase / Neon / RDS (db)
+- Upstash Redis
+
+AUTH
+----
+- Clerk / Supabase Auth
+
+MONITORING
+----------
+- Sentry
+- PostHog
+- UptimeRobot
+
+CI/CD
+-----
+- GitHub Actions
+
+========================================================
+2. MONOREPO STRUCTURE
+========================================================
+
+localityiq/
+
+apps/
+  web/
+  api/
+  worker/
+
+packages/
+  ui/
+  config/
+  types/
+  scoring-engine/
+  map-utils/
+
+infra/
+  docker/
+  terraform/
+
+========================================================
+3. CORE BUSINESS MODULES
+========================================================
+
+1. User Module
+2. Search Module
+3. Places Module
+4. Scoring Engine
+5. Heatmap Engine
+6. Saved Areas
+7. Preferences
+8. Admin Data Ops
+9. Billing
+10. Analytics
+
+========================================================
+4. DATABASE PRODUCTION SCHEMA
+========================================================
+
+users
+-----
+id UUID PK
+email
+name
+plan
+created_at
+
+preferences
+-----------
+user_id FK
+metro_weight
+gym_weight
+park_weight
+grocery_weight
+avoid_congestion_weight
+updated_at
+
+places
+------
+id UUID PK
+name
+category
+source
+rating
+geom GEOGRAPHY(Point,4326)
+meta_jsonb
+updated_at
+
+negative_zones
+--------------
+id UUID PK
+type
+severity
+geom GEOGRAPHY(Polygon,4326)
+
+roads
+-----
+id UUID PK
+road_type
+geom GEOGRAPHY(LineString,4326)
+
+grid_scores
+-----------
+h3_index PK
+resolution
+score
+breakdown_jsonb
+updated_at
+
+saved_locations
+---------------
+id UUID PK
+user_id FK
+label
+geom GEOGRAPHY(Point,4326)
+
+========================================================
+5. MUST HAVE INDEXES
+========================================================
+
+CREATE INDEX idx_places_geom ON places USING GIST(geom);
+CREATE INDEX idx_neg_geom ON negative_zones USING GIST(geom);
+CREATE INDEX idx_road_geom ON roads USING GIST(geom);
+CREATE INDEX idx_grid_h3 ON grid_scores(h3_index);
+
+Without indexes geo app will die.
+
+========================================================
+6. PRODUCTION SCORING ENGINE
+========================================================
+
+SCORE =
+
++ metro access
++ bus access
++ grocery density
++ breakfast density
++ gym proximity
++ park proximity
++ road connectivity
++ green cover
+
+- congestion
+- slum proximity
+- industrial noise
+- labour cluster penalty
+
+Normalize => 0 to 100
+
+========================================================
+7. BEST GEO COMPUTATION MODEL
+========================================================
+
+DO NOT calculate per pixel.
+
+Use H3 Hexagonal Grid.
+
+Flow:
+
+1. Divide Bangalore into H3 cells
+2. Calculate score per cell
+3. Store in grid_scores
+4. Render colored hexagons
+
+Benefits:
+- scalable
+- cacheable
+- beautiful visuals
+- zoom friendly
+
+========================================================
+8. HEATMAP COLOR SCALE
+========================================================
+
+0-20   = Dark Red
+21-40  = Orange
+41-60  = Yellow
+61-80  = Light Green
+81-100 = Dark Green
+
+========================================================
+9. API DESIGN
+========================================================
+
+PUBLIC
+
+GET /api/search?q=whitefield
+GET /api/heatmap?bbox=...
+GET /api/score?lat=..&lng=..
+GET /api/places?bbox=...&type=gym
+
+AUTH
+
+POST /api/auth/login
+GET /api/me
+POST /api/preferences
+POST /api/save-location
+
+ADMIN
+
+POST /api/admin/import-osm
+POST /api/admin/recompute-grid
+POST /api/admin/zone-upload
+
+========================================================
+10. FRONTEND PAGES
+========================================================
+
+/                Landing
+/explore         Main map
+/compare         Compare areas
+/dashboard       Saved places
+/pricing
+/admin
+
+========================================================
+11. MAIN MAP UX
+========================================================
+
+Top:
+- Search bar
+
+Left panel:
+- Filters
+- Sliders
+- Legend
+
+Center:
+- Map
+
+Right panel:
+- Area details
+
+Bottom:
+- Save location button
+
+========================================================
+12. AREA DETAIL PANEL
+========================================================
+
+User clicks map cell:
+
+Show:
+
+Whitefield Score: 78/100
+
+Strengths:
+- 2 metro nearby
+- many gyms
+- strong grocery density
+
+Weakness:
+- moderate congestion
+
+Nearby:
+- metro 1.2km
+- park 700m
+
+========================================================
+13. DATA INGESTION PIPELINE
+========================================================
+
+Nightly Job:
+
+1. Pull OSM places
+2. Clean duplicates
+3. Categorize nodes
+4. Store in places table
+5. Trigger score recompute
+
+BullMQ Worker handles this.
+
+========================================================
+14. OSM CATEGORY MAPPING
+========================================================
+
+amenity=gym => gym
+shop=supermarket => grocery
+highway=bus_stop => bus
+railway=station => metro/train
+leisure=park => park
+amenity=cafe => tea/juice
+amenity=restaurant => breakfast
+
+========================================================
+15. RECOMPUTE ENGINE
+========================================================
+
+When data changes:
+
+- recompute affected H3 cells only
+- not whole city
+
+Huge cost saver.
+
+========================================================
+16. PERFORMANCE STRATEGY
+========================================================
+
+Frontend:
+- fetch visible bbox only
+- debounce move events
+- lazy side panels
+- memoize layers
+
+Backend:
+- Redis cache heatmap bbox
+- precomputed scores
+- spatial indexes
+- background jobs
+
+DB:
+- PostGIS indexes
+- connection pooling
+
+========================================================
+17. SECURITY
+========================================================
+
+- Rate limit APIs
+- JWT sessions
+- SQL injection safe ORM
+- Validate all payloads
+- Hide admin routes
+- Secrets in env vars
+- CORS strict
+
+========================================================
+18. ENV VARIABLES
+========================================================
+
+DATABASE_URL=
+REDIS_URL=
+NEXT_PUBLIC_MAPTILER_KEY=
+CLERK_SECRET_KEY=
+CLERK_PUBLISHABLE_KEY=
+SENTRY_DSN=
+POSTHOG_KEY=
+
+========================================================
+19. CI/CD PIPELINE
+========================================================
+
+On push main:
+
+1. lint
+2. typecheck
+3. test
+4. build web
+5. build api
+6. deploy
+
+========================================================
+20. TESTING PLAN
+========================================================
+
+UNIT:
+- score formulas
+- utilities
+
+INTEGRATION:
+- geo queries
+- api endpoints
+
+E2E:
+- search locality
+- render map
+- save place
+
+========================================================
+21. ANALYTICS EVENTS
+========================================================
+
+track:
+- searched_locality
+- clicked_heat_cell
+- changed_weights
+- saved_place
+- upgraded_plan
+
+========================================================
+22. PRICING MODEL
+========================================================
+
+FREE
+- Bangalore only
+- basic heatmap
+
+PRO
+- compare areas
+- custom scoring
+- saved alerts
+- rental insights
+
+B2B
+- Builders / brokers / relocation firms
+
+========================================================
+23. 6 WEEK EXECUTION PLAN
+========================================================
+
+WEEK 1
+------
+Repo setup
+Auth
+Map page
+
+WEEK 2
+------
+PostGIS
+Search
+Place ingestion
+
+WEEK 3
+------
+Scoring engine
+Heatmap render
+
+WEEK 4
+------
+Filters
+Area details
+Save places
+
+WEEK 5
+------
+Caching
+Optimization
+Testing
+
+WEEK 6
+------
+Deploy
+SEO
+Launch Bangalore beta
+
+========================================================
+24. AGENT SAFE TASK BREAKDOWN
+========================================================
+
+Task 1:
+Setup monorepo
+
+Task 2:
+Create map page
+
+Task 3:
+Implement search API
+
+Task 4:
+Setup PostGIS schema
+
+Task 5:
+Import OSM Bangalore data
+
+Task 6:
+Build scoring engine
+
+Task 7:
+Render H3 polygons
+
+Task 8:
+Add preferences sliders
+
+Task 9:
+Save place feature
+
+Task 10:
+Deploy infra
+
+========================================================
+25. BIGGEST RISKS
+========================================================
+
+1. Bad data quality
+Fix:
+manual moderation + feedback
+
+2. Slow heatmap
+Fix:
+H3 precompute
+
+3. Users disagree with score
+Fix:
+transparent breakdown
+
+4. Expensive APIs
+Fix:
+OSM first
+
+========================================================
+26. WHAT I WOULD PERSONALLY DO
+========================================================
+
+Version 1:
+
+Only Bangalore
+Only metro + grocery + parks + congestion
+
+Simple but accurate.
+
+Then iterate.
+
+========================================================
+27. NEXT LEVEL VERSION
+========================================================
+
+Add:
+
+- rent price overlay
+- crime score
+- AQI pollution
+- flood zones
+- school quality
+- office commute score
+
+This becomes monster product.
+
+========================================================
+28. EXACT FIRST COMMAND TO VIBECODE
+========================================================
+
+"Build a Next.js TypeScript app with MapLibre full screen map,
+search bar, side filters panel, and heatmap layer placeholder."

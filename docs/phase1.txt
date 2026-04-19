@@ -1,0 +1,379 @@
+PHASE 1 IMPLEMENTATION PLAN (POC)
+PROJECT GOAL:
+Create a simple web application that opens a map, shows city view, supports search, marker placement, and displays a mock heatmap overlay.
+
+==================================================
+1. PHASE 1 SCOPE
+==================================================
+
+Deliver only:
+
+[ ] Web application
+[ ] Full screen interactive map
+[ ] Search place/locality
+[ ] Center map to searched location
+[ ] Click map to drop marker
+[ ] Show popup with coordinates
+[ ] Toggle demo heatmap layer
+[ ] Basic responsive layout
+[ ] Use only free APIs / free tokens
+
+No backend required in phase 1.
+
+==================================================
+2. TECH STACK
+==================================================
+
+Frontend:
+- Next.js
+- TypeScript
+- TailwindCSS
+
+Map:
+- MapLibre GL JS
+
+Geocoding:
+- Nominatim API (free)
+
+Heatmap:
+- deck.gl
+or
+- simple GeoJSON colored circles
+
+Hosting:
+- Vercel free tier
+
+==================================================
+3. PROJECT STRUCTURE
+==================================================
+
+locality-map-poc/
+
+src/
+  app/
+    page.tsx
+    layout.tsx
+    globals.css
+
+  components/
+    MapView.tsx
+    SearchBar.tsx
+    Sidebar.tsx
+    HeatToggle.tsx
+
+  lib/
+    geocode.ts
+    mockData.ts
+
+public/
+
+==================================================
+4. UI LAYOUT
+==================================================
+
+Top Bar:
+--------------------------------
+Search Input
+Search Button
+Heatmap Toggle
+--------------------------------
+
+Main Body:
+--------------------------------
+Map Full Screen
+--------------------------------
+
+Bottom Right:
+--------------------------------
+Clicked Coordinates Card
+--------------------------------
+
+==================================================
+5. FREE SERVICES USED
+==================================================
+
+Map Tiles:
+https://tile.openstreetmap.org/{z}/{x}/{y}.png
+
+MapLibre Style:
+Use open source public style
+or MapTiler free token if needed
+
+Search API:
+https://nominatim.openstreetmap.org/search?q=
+
+==================================================
+6. USER FLOW
+==================================================
+
+User opens site
+-> Bangalore centered map shown
+
+User searches:
+Whitefield Bangalore
+
+-> call Nominatim API
+-> get lat/lng
+-> move map to result
+-> place marker
+
+User clicks map
+-> drop temporary marker
+-> show coordinates popup
+
+User toggles heatmap
+-> show mock circles / colored zones
+
+==================================================
+7. INITIAL MAP CONFIG
+==================================================
+
+Default center:
+Bangalore
+
+Coordinates:
+[77.5946, 12.9716]
+
+Zoom:
+11
+
+==================================================
+8. FEATURES IMPLEMENTATION
+==================================================
+
+FEATURE 1: MAP LOAD
+-------------------
+
+Use MapLibre GL JS
+
+Functions:
+[ ] zoom
+[ ] pan
+[ ] fullscreen
+[ ] navigation controls
+
+==================================================
+9. FEATURE 2: SEARCH PLACE
+==================================================
+
+Input text:
+Whitefield
+
+On submit:
+
+fetch:
+https://nominatim.openstreetmap.org/search?format=json&q=Whitefield Bangalore
+
+Use first result:
+lat/lng
+
+Map flyTo()
+
+==================================================
+10. FEATURE 3: CLICK MARKER
+==================================================
+
+On map click:
+
+- remove old temp marker
+- place new marker
+- show popup:
+
+Latitude
+Longitude
+
+==================================================
+11. FEATURE 4: MOCK HEATMAP
+==================================================
+
+Create static points:
+
+Whitefield
+Koramangala
+Indiranagar
+HSR Layout
+Electronic City
+
+Each point:
+
+{
+ lat,
+ lng,
+ intensity
+}
+
+Render colored circles:
+
+High = Green
+Medium = Yellow
+Low = Red
+
+==================================================
+12. FEATURE 5: RESPONSIVE DESIGN
+==================================================
+
+Desktop:
+Top bar horizontal
+
+Mobile:
+Top bar stacked
+
+Map fills full screen
+
+==================================================
+13. INSTALL COMMANDS
+==================================================
+
+npx create-next-app@latest locality-map-poc --typescript
+
+cd locality-map-poc
+
+npm install maplibre-gl
+npm install deck.gl
+npm install @deck.gl/layers
+npm install @deck.gl/mapbox
+
+==================================================
+14. FILE: src/lib/mockData.ts
+==================================================
+
+export const hotspots = [
+ { name:"Whitefield", lat:12.9698, lng:77.7499, score:90 },
+ { name:"Koramangala", lat:12.9352, lng:77.6245, score:85 },
+ { name:"Indiranagar", lat:12.9784, lng:77.6408, score:82 },
+ { name:"HSR Layout", lat:12.9116, lng:77.6474, score:80 },
+ { name:"Electronic City", lat:12.8399, lng:77.6770, score:70 }
+]
+
+==================================================
+15. FILE: src/lib/geocode.ts
+==================================================
+
+export async function searchPlace(query:string){
+ const res = await fetch(
+ `https://nominatim.openstreetmap.org/search?format=json&q=${query}`
+ )
+ return res.json()
+}
+
+==================================================
+16. FILE: src/components/SearchBar.tsx
+==================================================
+
+Input field
+Search button
+
+Props:
+onSearch(query)
+
+==================================================
+17. FILE: src/components/HeatToggle.tsx
+==================================================
+
+Button:
+Show Heatmap / Hide Heatmap
+
+==================================================
+18. FILE: src/components/MapView.tsx
+==================================================
+
+Responsibilities:
+
+[ ] Initialize map
+[ ] Add navigation controls
+[ ] Handle click marker
+[ ] Handle flyTo search result
+[ ] Render heat circles
+
+==================================================
+19. SIMPLE HEATMAP METHOD
+==================================================
+
+Use GeoJSON source:
+
+Each hotspot becomes circle layer.
+
+Paint:
+
+circle-radius based on score
+circle-opacity 0.35
+circle-color interpolate score:
+
+0 red
+50 yellow
+100 green
+
+==================================================
+20. MAP STYLE OPTION
+==================================================
+
+Use free public style:
+
+https://demotiles.maplibre.org/style.json
+
+==================================================
+21. MAIN PAGE FLOW
+==================================================
+
+page.tsx
+
+State:
+
+searchText
+showHeatmap
+selectedCoords
+
+Render:
+
+<SearchBar />
+<HeatToggle />
+<MapView />
+
+==================================================
+22. SUCCESS OUTPUT OF PHASE 1
+==================================================
+
+When app runs:
+
+[ ] User sees Bangalore map
+[ ] Can zoom and pan
+[ ] Can search Whitefield
+[ ] Map moves there
+[ ] Marker added
+[ ] Click anywhere for coordinates
+[ ] Toggle heat circles
+[ ] Looks usable as POC
+
+==================================================
+23. DEPLOYMENT
+==================================================
+
+Push to GitHub
+
+Import into Vercel free tier
+
+Deploy
+
+==================================================
+24. FUTURE PHASE 2 AFTER THIS
+==================================================
+
+[ ] Real backend
+[ ] Real OSM place ingestion
+[ ] Real score engine
+[ ] H3 grid heatmap
+[ ] Saved places
+[ ] User preferences
+
+==================================================
+25. EXACT BUILD PROMPT FOR CODING AGENT
+==================================================
+
+Create a Next.js TypeScript web app using Tailwind and MapLibre.
+Show a full screen Bangalore map centered at [77.5946,12.9716].
+Add search bar using free Nominatim API.
+When searched, fly to location and place marker.
+Allow map click to place marker and show coordinates popup.
+Add toggle button to show/hide mock heatmap circles for Whitefield, Koramangala, Indiranagar, HSR Layout.
+Use responsive design and clean UI.
+Use only free APIs and free public map styles.

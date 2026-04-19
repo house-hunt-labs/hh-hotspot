@@ -1,0 +1,282 @@
+/*
+ * Map page layout + panels — vanilla CSS (no inline styles in components).
+ * Node halo + marker accent colors: src/nodes/nodeTypeAppearance.ts (single palette).
+ */
+
+:root {
+  /* Mirrors cool theme in nodeTypeAppearance (for future DOM-only layers). */
+  --map-canvas-tint: #020617;
+}
+
+.map-app {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: #020617;
+  color: #e2e8f0;
+}
+
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.map-search-anchor {
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+}
+
+.map-search-stack {
+  pointer-events: auto;
+  display: flex;
+  width: 100%;
+  max-width: var(--map-search-max-width, 20rem);
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.map-search-surface {
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.38);
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(18px);
+}
+
+.map-search-hint {
+  margin: 0.35rem 0 0;
+  padding: 0 0.75rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: rgba(15, 23, 42, 0.72);
+}
+
+.map-search-status {
+  margin-top: 0.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #000000;
+}
+
+.map-search-inner {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.map-search-field-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.map-search-field {
+  width: 100%;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(255, 255, 255, 0.55);
+  padding: 0.45rem 2.25rem 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.map-search-field::placeholder {
+  color: rgba(51, 65, 85, 0.65);
+}
+
+.map-search-field:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.map-search-icon-btn {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  border-radius: 9999px;
+  padding: 0.25rem;
+  background: transparent;
+  cursor: pointer;
+  color: #64748b;
+  transition: background 0.15s ease;
+}
+
+.map-search-icon-btn:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.map-coords-anchor {
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 10;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: 1rem;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.map-coords-panel {
+  pointer-events: auto;
+  width: min(18rem, calc(100vw - 2rem));
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.55);
+  padding: 0.75rem 0.85rem;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.map-coords-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.map-coords-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+}
+
+.map-coords-input {
+  flex: 1;
+  min-width: 0;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.65);
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  color: #f1f5f9;
+  outline: none;
+}
+
+.map-coords-input::placeholder {
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.map-coords-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.map-coords-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.map-coords-btn {
+  flex: 1;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.map-coords-btn-primary {
+  background: #38bdf8;
+  color: #0f172a;
+}
+
+.map-coords-btn-primary:hover {
+  background: #7dd3fc;
+}
+
+.map-coords-btn-ghost {
+  background: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+}
+
+.map-coords-btn-ghost:hover {
+  background: rgba(148, 163, 184, 0.35);
+}
+
+.map-coords-msg {
+  margin: 0.35rem 0 0;
+  font-size: 0.7rem;
+  color: #fca5a5;
+}
+
+.map-error-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+  background: rgba(2, 6, 23, 0.92);
+}
+
+.map-error-text {
+  max-width: 24rem;
+  font-size: 0.875rem;
+  color: #cbd5e1;
+}
+
+/* Google Maps InfoWindow HTML (same document; keep class-based, no inline styling in TS). */
+.map-iw {
+  min-width: 7.5rem;
+  padding: 0.25rem 0.35rem;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.875rem;
+  color: #0f172a;
+}
+
+.map-iw-title {
+  font-weight: 700;
+}
+
+.map-iw-type {
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  opacity: 0.85;
+  text-transform: capitalize;
+}
+
+.map-iw-radius {
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #64748b;
+}
+
+.map-iw-desc {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  opacity: 0.92;
+}
+
+.hidden {
+  display: none;
+}
