@@ -1,35 +1,41 @@
-import type { MapNode } from '@/nodes/types';
-import type { MapNodeSource } from '@/nodes/mapNodeSource';
-import { StaticMapNodeSource } from '@/nodes/staticMapNodeSource';
-import { ApiMapNodeSource } from '@/nodes/apiMapNodeSource';
+import type { MapNode } from '@/models/schema';
 
-/** Default source: API-backed source pointing to localhost:8080 */
-let activeSource: MapNodeSource = new ApiMapNodeSource();
+const API_BASE_URL = 'http://localhost:8080/api/v1';
 
-/** For tests or wiring a repository without touching call sites. */
-export function setMapNodeSource(source: MapNodeSource) {
-  activeSource = source;
-}
-
-/** Switch to static mock data source */
-export function useStaticSource() {
-  activeSource = new StaticMapNodeSource();
-}
-
-/** Switch to API source */
-export function useApiSource() {
-  activeSource = new ApiMapNodeSource();
-}
-
+/**
+ * Fetch all map nodes directly from API
+ */
 export async function getMapNodes(): Promise<MapNode[]> {
-  return activeSource.list();
+  const response = await fetch(`${API_BASE_URL}/map-nodes`);
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch map nodes: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data = await response.json();
+
+  return Array.isArray(data) ? data : data.nodes ?? [];
 }
 
-export async function getMapNodesByType(type: string): Promise<MapNode[]> {
-  if (activeSource.listByType) {
-    return activeSource.listByType(type);
+/**
+ * Fetch map nodes filtered by type directly from API
+ */
+export async function getMapNodesByType(
+  type: string
+): Promise<MapNode[]> {
+  const response = await fetch(
+    `${API_BASE_URL}/map-nodes?type=${encodeURIComponent(type)}`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch map nodes by type: ${response.status} ${response.statusText}`
+    );
   }
-  // Fallback: filter from all nodes
-  const allNodes = await activeSource.list();
-  return allNodes.filter((node) => node.type === type);
+
+  const data = await response.json();
+
+  return Array.isArray(data) ? data : data.nodes ?? [];
 }

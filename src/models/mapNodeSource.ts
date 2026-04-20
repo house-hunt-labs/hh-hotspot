@@ -1,4 +1,4 @@
-import type { MapNode } from '@/nodes/types';
+import type { MapNode } from '@/models/schema';
 
 /**
  * Port: anything that can list map nodes (static JSON today, Prisma/API tomorrow).
