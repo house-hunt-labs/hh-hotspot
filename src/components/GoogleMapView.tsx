@@ -78,7 +78,7 @@ export default function GoogleMapView() {
 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<Set<MapNodeType>>(() => new Set(MAP_NODE_TYPES));
-  const [showMarkers, setShowMarkers] = useState(true);
+  const [showMarkers, setShowMarkers] = useState(false);
   const [nodes, setNodes] = useState<MapNode[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -172,7 +172,7 @@ export default function GoogleMapView() {
             title: node.label,
             content: markerContentForType(node.type),
           });
-          marker.addEventListener('click', () => {
+          marker.addEventListener('gmp-click', () => {
             infoWindow.setContent(nodeInfoHtml(node));
             infoWindow.open({ map, anchor: marker });
           });
@@ -242,7 +242,7 @@ export default function GoogleMapView() {
           title: node.label,
           content: markerContentForType(node.type),
         });
-        marker.addEventListener('click', () => {
+        marker.addEventListener('gmp-click', () => {
           infoWindowRef.current?.setContent(nodeInfoHtml(node));
           infoWindowRef.current?.open({ map, anchor: marker });
         });
@@ -316,7 +316,7 @@ export default function GoogleMapView() {
         />
       )}
 
-      <div className="map-coords-anchor">
+      <div className="map-coords-anchor hidden">
         <CoordinateMarkForm onPlace={handlePlaceByCoordinates} />
       </div>
 

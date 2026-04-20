@@ -5,18 +5,16 @@ import { appearanceForType } from '@/nodes/nodeTypeAppearance';
 // The separate soft circle around the node is rendered by radiantHalosOverlay.ts.
 function pinSvg(fill: string): string {
   const stroke = 'rgba(15, 23, 42, 0.85)';
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 28 40" aria-hidden="true">
-  <defs>
-    <radialGradient id="g" cx="50%" cy="36%" r="70%">
-      <stop offset="0%" stop-color="${fill}" stop-opacity="0.95"/>
-      <stop offset="55%" stop-color="${fill}" stop-opacity="0.62"/>
-      <stop offset="100%" stop-color="${fill}" stop-opacity="0.18"/>
-    </radialGradient>
-  </defs>
-  <path d="M14 2C8 2 3 7.5 3 13.6c0 7.7 11 18.7 11 18.7s11-11 11-18.7C25 7.5 20 2 14 2Z" fill="url(#g)" stroke="${stroke}" stroke-width="1.2"/>
-  <circle cx="14" cy="14" r="4.8" fill="rgba(255,255,255,0.92)"/>
-  <circle cx="14" cy="14" r="2.3" fill="${fill}"/>
-</svg>`;
+    <path
+      d="M14 2C8 2 3 7.5 3 13.6c0 7.7 11 18.7 11 18.7s11-11 11-18.7C25 7.5 20 2 14 2Z"
+      fill="${fill}"
+      stroke="${stroke}"
+      stroke-width="1.2"
+    />
+    <circle cx="14" cy="14" r="4" fill="white" opacity="0.5"/>
+  </svg>`;
 }
 
 function svgToElement(svg: string): HTMLElement {
