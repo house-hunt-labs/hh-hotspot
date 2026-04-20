@@ -1,5 +1,3 @@
-import type { MapNodeType } from '@/nodes/types';
-import { appearanceForType } from '@/nodes/nodeTypeAppearance';
 
 // This file only creates the location pin content for each node.
 // The separate soft circle around the node is rendered by radiantHalosOverlay.ts.
@@ -23,13 +21,13 @@ function svgToElement(svg: string): HTMLElement {
   return wrapper.firstElementChild as HTMLElement;
 }
 
-export function markerContentForType(type: MapNodeType): Node {
-  return svgToElement(pinSvg(appearanceForType(type).color));
+export function markerContentForType(color: string): Node {
+  return svgToElement(pinSvg(color));
 }
 
 /** Marker colors come from `nodeTypeAppearance` (single palette). */
-export function markerIconForType(type: MapNodeType): google.maps.Icon {
-  const fill = appearanceForType(type).color;
+export function markerIconForType(color: string): google.maps.Icon {
+  const fill = color;
   const svg = pinSvg(fill);
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
